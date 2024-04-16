@@ -2,5 +2,7 @@ DATA/
 LOGS/
 FIGS/
 SHAPES/
+BLOG/
 *test*
 CF_scraper/
+__pycache__/
