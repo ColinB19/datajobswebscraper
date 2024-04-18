@@ -248,8 +248,6 @@ class DataJobsScraper:
         self.job_meta.location = self.job_meta.location.replace(
             {"New York City": "New York City, NY"}
         )
-        # This is an HTML code for ampersand. Let's just replace it with an actual ampersand
-        self.job_meta["title"] = self.job_meta["title"].replace({"&amp;": "&"})
         # Let's get the states (note, there are non-US jobs in this dataset)
         # self.job_meta['state'] = self.job_meta.loc[:,'location'].fillna('').apply(lambda x: x.replace(' ', '').split(',')[1] if ',' in x else x)
         self.job_meta["state"] = (
@@ -317,14 +315,24 @@ class DataJobsScraper:
                 fall = re.findall(dj_pattern, page_html)
 
                 # create pandasable list
-                fall_cols = [dict(zip(self.job_meta.columns, x + (cat,))) for x in fall]
-
+                # fall_cols = [dict(zip(self.job_meta.columns, x.replace("&amp;","&") \
+                #                                               .replace("&amp,","&") \
+                #                                               .replace("&nbsp;"," ") \
+                #                                               .replace("&nbsp,"," ") \
+                #                                                + (cat,))) for x in fall]
+                fall_cols = [dict(zip(self.job_meta.columns, 
+                                          (y.replace("&amp;","&") \
+                                            .replace("&amp,","&") \
+                                            .replace("&nbsp;"," ") \
+                                            .replace("&nbsp,"," ") \
+                                            if type(y) == str else y for y in x) + (cat,))) \
+                                for x in fall]
                 # add to dataframe
                 self.job_meta = pd.concat(
                     [self.job_meta, pd.DataFrame(fall_cols)], ignore_index=True
                 )
 
-                if i == 200:
+                if i == 300:
                     # stop after 200 pages
                     more_pages = False
 
@@ -361,7 +369,10 @@ class DataJobsScraper:
                 print(f"I can't find this job: {job['title']}")
                 continue
             # get html
-            job_desc_clean = cleanhtml(job_descr.get_attribute("innerHTML"))
+            job_desc_clean = cleanhtml(job_descr.get_attribute("innerHTML")).replace("&amp;","&") \
+                                                              .replace("&amp,","&") \
+                                                              .replace("&nbsp;"," ") \
+                                                              .replace("&nbsp,"," ")
             job_desc_list.append(
                 {
                     "job_id": job["job_id"],
@@ -384,7 +395,7 @@ class DataJobsScraper:
             for job in jobs:
 
                 # we are having a frequest request issue, let's try some rate limiting
-                time.sleep(np.random.randint(0, 1) / 10)
+                time.sleep(np.random.randint(1, 10) / 10)
 
                 bp = f"jobs?q={job.lower().replace(' ','+')}&l={state}"
                 self._driver.get(self._site_url + bp)
@@ -424,14 +435,20 @@ class DataJobsScraper:
                     )
 
                     # create pandasable list
-                    fall_cols = [dict(zip(self.job_meta.columns, x)) for x in fall]
+                    fall_cols = [dict(zip(self.job_meta.columns, 
+                                          [y.replace("&amp;","&") \
+                                            .replace("&amp,","&") \
+                                            .replace("&nbsp;"," ") \
+                                            .replace("&nbsp,"," ") \
+                                            if type(y) == str else y for y in x])) \
+                                for x in fall]
 
                     # add to dataframe
                     self.job_meta = pd.concat(
                         [self.job_meta, pd.DataFrame(fall_cols)], ignore_index=True
                     )
 
-                    if i == 200:
+                    if i == 300:
                         # stop after 200 pages
                         more_pages = False
 
@@ -473,7 +490,10 @@ class DataJobsScraper:
             )
 
             if len(company_name) == 1:
-                self.job_meta.loc[idx, "company"] = company_name[0]
+                self.job_meta.loc[idx, "company"] = company_name[0].replace("&amp;","&") \
+                                                                .replace("&amp,","&") \
+                                                                .replace("&nbsp;"," ") \
+                                                                .replace("&nbsp,"," ")
             else:
                 print(
                     f"Not the correct number of company names for ID:{job['job_id']} TITLE: {job['title']}. Found: {company_name}"
@@ -508,7 +528,10 @@ class DataJobsScraper:
                 location = re.findall(r"job-location[^>]*>([^<]*)</div", page_html)
 
             if len(location) == 1 or len(location) == 2:
-                self.job_meta.loc[idx, "location"] = location[0]
+                self.job_meta.loc[idx, "location"] = location[0].replace("&amp;","&") \
+                                                            .replace("&amp,","&") \
+                                                            .replace("&nbsp;"," ") \
+                                                            .replace("&nbsp,"," ")
             else:
                 print(
                     f"Not the correct number of locations for ID:{job['job_id']} TITLE: {job['title']}. Found: {location}"
@@ -524,7 +547,10 @@ class DataJobsScraper:
                 continue
 
             # get html
-            job_desc_clean = cleanhtml(job_descr.get_attribute("innerHTML"))
+            job_desc_clean = cleanhtml(job_descr.get_attribute("innerHTML")).replace("&amp;","&") \
+                                                                .replace("&amp,","&") \
+                                                                .replace("&nbsp;"," ") \
+                                                                .replace("&nbsp,"," ")
             job_desc_list.append(
                 {
                     "job_id": job["job_id"],
