@@ -6,3 +6,4 @@ BLOG/
 *test*
 CF_scraper/
 __pycache__/
+*.odt
