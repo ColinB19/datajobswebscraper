@@ -684,3 +684,37 @@ buzz_words = [
 'Excel',
 'Google Sheets'
 ]
+
+
+programming_languages = [
+    'C', 'C++', 'C#', 'Python', 'Scala', 'Java', 'Javascript', 'Julia', 'R', 'Fortran', 'Visual Basic', 'SQL', 'PHP', 'MATLAB', 'Mathematica', 'Ruby', 'Perl', 'Rust', 'SAS', 'COBOL', 'Lisp', 'Stata'
+]
+
+libraries = [
+    'NumPy', 'Matplotlib', 'Pandas', 'Scikit-learn', 'TensorFlow', 'Seaborn', 'Keras', 'PyTorch', 'SciPy', 'Plotly',  'BeautifulSoup', 'Selenium', 'Scrapy', 'Ggplot2', 'Statsmodels', 'Bokeh', 'NLTK', 'LightGBM', 'Pandas',
+    'ELI5', 'XGBoost', 'CatBoost', 'Optuna', 'PyCaret', 'Dplyr', 'Caret', 'randomForest', 'Kernlab', 'Rpart', 'DataExplorer', 'PyCaret'
+]
+
+dev_tools = [
+    'Azure', 'AWS', 'GCP', 'Apache Spark', 'Apache Airflow', 'Hadoop', 'MapReduce', 'Excel', 'Databricks', 'Coudera', 'ChatGPT', 'Git', 'Github'
+]
+
+viz_tools = [
+    'Tableau', 'PowerBI', 'Infogram', 'Qlik', 'Looker', 'Zoho Analytics'
+]
+
+databases = [
+    'PostgreSQL', 'Snowflake', 'Cassandra', 'Oracle', 'MySQL', 'SQL Server', 'MongoDB', 'redis', 'Teradata', 'SQLite', 'IBM Db2'
+]
+
+soft_skills = [
+    'Presentation', 'Communication', 'Collaboration', 'Adaptability','Project Management', 'Teamwork', 'Attention to detail', 
+    'Problem Solving', 'Critical Thinking', 'Continuous Learning', 'Agile', 'Independence', 'Creativity'
+]
+
+concepts = [
+    'Webscraping', 'Machine Learning', 'Deep Learning', 'CNN', 'ANN', 'ARIMA', "LSTM", 
+    'RNN', 'Neural Network', 'Regression', 'Classification', 'Reinforcement Learning', 'Time-Series', 'Supervised Learning', 'Unsupervised Learning',
+    'Semi-Supervised Learning', 'Computer Vision', 'Transformer', 'Autoencoder', 'Outlier Detection', 'Artificial Intelligence', 'Large Language Model', 'causal inference', 
+    'A/B Testing', 'Recommender System', 'Forecasting'
+]
