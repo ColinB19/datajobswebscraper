@@ -7,3 +7,4 @@ BLOG/
 CF_scraper/
 __pycache__/
 *.odt
+.env

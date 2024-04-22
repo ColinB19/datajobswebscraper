@@ -11,15 +11,23 @@ from datetime import datetime
 import time
 import logging
 from string import punctuation
+import os 
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from lists_and_dicts import state_codes, street_sfx, state_map
 
-wait_time = 3
-PATH = '/home/colin/Documents/Code/DS Projects/Wellfound Webscraper/DATA'
-LOG_PATH = '/home/colin/Documents/Code/DS Projects/Wellfound Webscraper/LOGS'
-HEADLESS = False
-WAIT_TIME = 10
 
+# wait time controls how long selenium waits before trying again to find the elemement
+wait_time = 3
+# this controls where the data will be put once it's scraped. 
+PATH = os.getenv('DATA_PATH')
+LOG_PATH = os.getenv('LOG_PATH')
+# this controls if the scraper opens a browser GUI or just runs in headless mode in the background
+HEADLESS = False
+
+# websites we'll be scraping
 dj_site = 'https://datajobs.com/'
 indeed_site = 'https://indeed.com/'
 # this pattern pulls jobs specifically from datajobs
@@ -37,18 +45,18 @@ logging.basicConfig(
     filename=LOG_PATH + "/main.log",
     format="%(levelname)s - %(asctime)s:%(message)s",
     encoding="utf-8",
-    level=logging.INFO,
+    level=logging.ERROR,
 )
 
-def cleanhtml(raw_html):
+def cleanhtml(raw_html: str) -> str:
     """To clean up HTML. Removes all HTML tags and comments. Leaves plain text.
 
     Input:
     ------
-        raw_html -> string: html scraped from a website
+        raw_html: string || html scraped from a website
     Output:
     -------
-        cleantext -> string: text from rawhtml with HTML comments and tags removed
+        cleantext: string || text from rawhtml with HTML comments and tags removed
     """
     raw_html2 = re.sub("(<!--.*?-->)", "", raw_html, flags=re.DOTALL)
     cleantext = re.sub(
@@ -57,8 +65,18 @@ def cleanhtml(raw_html):
     return cleantext
 
 
-def remove_style_tags(html_string):
-    # Regex pattern to match <style> tags and their content
+def remove_style_tags(html_string: str) -> str:
+    """ Regex pattern to match <style> tags and their content
+    
+    Input:
+    ------
+        html_string -> string: html scraped from a website
+    Output:
+    -------
+        cleantext -> string: text from rawhtml with HTML comments and tags removed
+
+    """
+    
     style_pattern = re.compile(
         r"<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>", re.IGNORECASE
     )
