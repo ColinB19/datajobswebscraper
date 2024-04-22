@@ -1,4 +1,13 @@
-import sys
+"""
+This script is adapted from this GitHub Repo: https://github.com/shawnbutton/PythonHeadlessChrome/tree/master. I needed
+an effective way of downloading excel files in headless mode and not having to deal with the download popup in chrome. 
+The download popup cannot be controlled by selenium, so I needed the files to be pushed to a specific directory automatically.
+I tried many (many, many) solutions,  and this was the most effective!
+
+I've modified the code to automatically download the latest chrome driver if not already installed, and to emulate a user 
+browser using headers (which is oddly not the default selenium behavior). 
+
+"""
 
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome import webdriver as chrome_webdriver
@@ -9,7 +18,17 @@ from selenium.webdriver.chrome.service import Service
 
 
 class DriverBuilder:
-    def get_driver(self, download_location=None, headless=False):
+    """Class to build a chrome driver in selenium. The key functionality is it allows chrome to automatically download files to a
+    specific directory without the usual download prompt window. It also grabs the latest Chrome driver automatically, enables some 
+    safebrowsing options, and emulates a user browser by using headers."""
+
+    def get_driver(self, download_location: str=None, headless: bool=False) -> chrome_webdriver:
+        """Calls the driver configuration manager and sets the chrome window size
+
+        Keyword Arguments: 
+        download_location -- path to where files will be automatically downloaded, defaults to system defualt.
+        headless -- tells the scraper to open up a browswer window or just run the driver in the background.
+        """
         driver = self._get_chrome_driver(download_location, headless)
 
         driver.set_window_size(1400, 700)

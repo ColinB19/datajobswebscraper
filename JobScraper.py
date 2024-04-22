@@ -11,7 +11,7 @@ from datetime import datetime
 import time
 import logging
 from string import punctuation
-import os 
+import os
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -21,25 +21,18 @@ from lists_and_dicts import state_codes, street_sfx, state_map
 
 # wait time controls how long selenium waits before trying again to find the elemement
 wait_time = 3
-# this controls where the data will be put once it's scraped. 
-PATH = os.getenv('DATA_PATH')
-LOG_PATH = os.getenv('LOG_PATH')
+# this controls where the data will be put once it's scraped.
+PATH = os.getenv("DATA_PATH")
+LOG_PATH = os.getenv("LOG_PATH")
 # this controls if the scraper opens a browser GUI or just runs in headless mode in the background
 HEADLESS = False
 
 # websites we'll be scraping
-dj_site = 'https://datajobs.com/'
-indeed_site = 'https://indeed.com/'
+dj_site = "https://datajobs.com/"
+indeed_site = "https://indeed.com/"
 # this pattern pulls jobs specifically from datajobs
 dj_pattern = r"<a href=\"(.*)\"><strong>(.*)</strong> – <span [^\>]*>(.*)</span></a>[\n\s]*</div>[\n\s]*<div[^\>]*>[\n\s]*<em>[\n\s]*<span[^\>]*>(.*)</span>[\n\s]*[\&nbsp;\•]*[\n\s]*\$*([\d,]*)[–\s]*\$*([\d,]*)[\n\s]*</em>"
-col_list = [
-    'url',
-    'title',
-    'company',
-    'location',
-    'salary_lower',
-    'salary_upper'
-]
+col_list = ["url", "title", "company", "location", "salary_lower", "salary_upper"]
 
 logging.basicConfig(
     filename=LOG_PATH + "/main.log",
@@ -48,35 +41,18 @@ logging.basicConfig(
     level=logging.ERROR,
 )
 
-def cleanhtml(raw_html: str) -> str:
-    """To clean up HTML. Removes all HTML tags and comments. Leaves plain text.
 
-    Input:
-    ------
-        raw_html: string || html scraped from a website
-    Output:
-    -------
-        cleantext: string || text from rawhtml with HTML comments and tags removed
-    """
-    raw_html2 = re.sub("(<!--.*?-->)", "", raw_html, flags=re.DOTALL)
-    cleantext = re.sub(
-        "<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});", " ", raw_html2
+def cleanhtml(html_string: str) -> str:
+    """Regex pattern to match and remove all html tags and comments, leaving plain text."""
+    html_string2 = re.sub("(<!--.*?-->)", "", html_string, flags=re.DOTALL)
+    cleaned_html = re.sub(
+        "<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});", " ", html_string2
     )
-    return cleantext
+    return cleaned_html
 
 
 def remove_style_tags(html_string: str) -> str:
-    """ Regex pattern to match <style> tags and their content
-    
-    Input:
-    ------
-        html_string -> string: html scraped from a website
-    Output:
-    -------
-        cleantext -> string: text from rawhtml with HTML comments and tags removed
-
-    """
-    
+    """Regex pattern to match <style> tags and their content and then remove them."""
     style_pattern = re.compile(
         r"<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>", re.IGNORECASE
     )
@@ -85,7 +61,8 @@ def remove_style_tags(html_string: str) -> str:
     return cleaned_html
 
 
-def remove_script_tags(html_string):
+def remove_script_tags(html_string: str) -> str:
+    """Regex pattern to match <script> tags and their content and then remove them."""
     # Regex pattern to match <script> tags and their content
     script_pattern = re.compile(
         r"<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>", re.IGNORECASE
@@ -95,9 +72,24 @@ def remove_script_tags(html_string):
     return cleaned_html
 
 
-def clean_title(title):
+def clean_title(title: str) -> str:
+    """Take the raw title scraped from the job board and attempt to translate into a standard data job title. One of:
+        1) Leadership
+        2) Software Engineer
+        3) Data Scientist
+        4) Data Analyst
+        5) Data Engineer
+        6) BI Engineer
+        7) Machine Learning Engineer
+        8) Statistician
+
+    Keyword Arguments:
+    title -- the job title trying to be translated
+
+    """
+    # lower everything for consitencies sake
     temp_title = title.lower().replace(" ", "")
-    # let's just lump leadership/management positions into one category since we aren't really looking for these
+    # lump leadership/management positions into one category since we aren't really looking for these
     if (
         "headof" in temp_title
         or "chief" in temp_title
@@ -106,16 +98,17 @@ def clean_title(title):
         or "manager" in temp_title
     ):
         return "Leadership"
-    # software engineering is also not quite what we're looking for
+    # there are some software engineering roles that pop up on these sites/searches
     elif "software" in temp_title and (
         "engineer" in temp_title or "developer" in temp_title
     ):
         return "Software Engineer"
-    # here we are mapping the standard data positions. Note that job titles can be Data Scientist - Ads or something like that, this helps us just grab the position title
+    # mapping the standard data positions.
+    # NOTE: job titles can be Data Scientist - Ads or something like that, this helps grab the position title
     elif "data" in temp_title:
         if "scientist" in temp_title or "science" in temp_title:
             return "Data Scientist"
-        # here we are generalizing a lot of different positions into one. It's ok for a general overview
+        # generalizing a lot of different positions into one. It's ok for a general overview
         # NOTE: This logic will capture the 'Data Science Engineer' role, since Data Engineering tends to be more in demand, I'm ok with that.
         elif (
             "engineer" in temp_title
@@ -135,7 +128,7 @@ def clean_title(title):
         or "bi " in title.lower()
     ):
         return "BI Engineer"
-    # this is highly specific we could probably stand to workshop this a bit
+    # this is highly specific... could probably stand to workshop this a bit
     elif (
         "machine" in temp_title
         and "learning" in temp_title
@@ -143,26 +136,40 @@ def clean_title(title):
     ):
         return "Machine Learning Engineer"
     # this captures all the analysts not caught in the 'data' step
+    # TODO: This could be too generous, maybe capturing things that shouldn't be her. Also worth workshopping
     elif "analyst" in temp_title:
         return "Data Analyst"
     elif "statistician" in temp_title:
         return "Statistician"
+    # there were quite a few roles popping up with Hadoop in the title... they are likely very similar to
+    # data engineer roles
     elif "hadoop" in temp_title:
         return "Data Engineer"
     else:
         return title
 
 
-def get_state_code(addr):
+def get_state_code(addr: str) -> str | None:
+    """Attempt to get a state-code from the address scraped of the job board.
+
+    Keyword Arguments:
+    addr -- the address that we are triyng to parse for the state code
+    """
+    # NOTE: this process is not perfect, but it is very good in broad strokes. 
+
+    # just skip it if there is no address
     if addr != addr or addr is None:
         return None
 
     # a lot of these have the word "in" in them, let's remove it
     addr = addr.replace(" in ", " ")
 
+    # remove all punctuation
     addr_1 = re.sub(f"[{punctuation}]", "", addr)
-    sfx_idx = []
 
+    # there are a lot of streets in america with state names (e.g. Washington Blvd)
+    # everything before the street suffix (Blvd, St, Ct, etc.) can be ignored in finding the state code
+    sfx_idx = []
     for sfx in street_sfx:
         try:
             addr_1.lower().index(f" {sfx.lower()} ")
@@ -171,25 +178,32 @@ def get_state_code(addr):
         else:
             sfx_idx.append({sfx: addr_1.lower().index(f" {sfx.lower()} ")})
 
+    # the case when more than one street suffix is found
     if len(sfx_idx) > 1:
         # for the most part, we can just take the max index here
         idx = -1
         for match in sfx_idx:
             temp_idx = list(match.values())[0]
+            # this will ensure the most text is removed to try to alleviate the state matching on the street name
             if temp_idx > idx:
                 idx = temp_idx
+                # so we can remove the street suffix along with everything before it
                 sfx_len = len(list(match.keys())[0])
         addr_1_sub = addr_1[idx + sfx_len + 1 :]
         addr_1_sub = addr_1
     elif len(sfx_idx) == 1:
+        # if there is only one street suffix then no searching for the furthest along the string is required
         idx = list(sfx_idx[0].values())[0]
         sfx_len = len(list(sfx_idx[0].keys())[0])
         addr_1_sub = addr_1[idx + sfx_len + 1 :]
     else:
         addr_1_sub = addr_1
 
+    # start by looking for the state codes ('CA', 'WA', etc.)
     states = []
     for st in state_codes:
+        # split because we don't want to match on substrings of other words. 
+        # e.g. company would match on CO fo Colorado
         if st in addr_1_sub.split():
             states.append(st)
 
@@ -214,10 +228,25 @@ def get_state_code(addr):
 
 
 class DataJobsScraper:
+    """
+    Webscraping class capable of scraping information about data jobs posted to Indeed.com and DataJobs.com. The
+    scraper will pull:
+        1) Job Titles
+        2) Companies
+        3) Job Locations
+        4) Salaries
+        5) Job Descriptions
+    """
 
-    def __init__(self, site):
-
+    def __init__(self, site: str):
+        """Initializes the scraper and sets up a few variables for the scraper.
+        
+        Keyword Arguments: 
+        site -- the website URL
+        """
         self._site = site
+
+        # the way this is set up, we only need to set up the job_meta dataframe initially.
         self.job_meta = pd.DataFrame(
             columns=[
                 "url",
@@ -232,6 +261,10 @@ class DataJobsScraper:
         )
 
     def scrape_jobs(self):
+        """Controls the scraping of the high-level job data. Establishes a selenium driver and calls the scraping functions to search 
+        through pages of job postings."""
+
+        # set up the Chrome Driver
         driver_builder = DriverBuilder()
         self._driver = driver_builder.get_driver(
             download_location=PATH, headless=HEADLESS
@@ -244,30 +277,35 @@ class DataJobsScraper:
         elif self._site == "Indeed":
             self._site_url = "https://indeed.com/"
             self.__scrape_indeed()
+        
         # just dedup jobs before moving on
         self.job_meta.drop_duplicates(
             subset=self.job_meta.columns.tolist()[:-1], inplace=True
         )
+        # indexing the job id
         self.job_meta["job_id"] = self.job_meta.index + 1
+
+        # pull date for tracking purposes
         self.job_meta["pull_date"] = datetime.today().strftime(r"%m/%d/%Y")
 
     def scrape_job_text(self):
-
+        """Controls the scraping of the individual job postings including job descriptions. """
         if self._site == "DataJobs":
             job_desc_list = self.__scrape_datajob_desc()
         elif self._site == "Indeed":
             job_desc_list = self.__scrape_indeed_desc()
 
+        # set up the dataframe
         self.job_descriptions = pd.DataFrame(job_desc_list)
 
     def clean_data(self):
+        """Clean up a couple things, grab state codes and clean up the job titles where we can. """
         # let's clean up the data a bit
         # I noticed that New York City, NY is just represented as New York City. This doesn't work for pulling out the states later so let's just replace it
         self.job_meta.location = self.job_meta.location.replace(
             {"New York City": "New York City, NY"}
         )
         # Let's get the states (note, there are non-US jobs in this dataset)
-        # self.job_meta['state'] = self.job_meta.loc[:,'location'].fillna('').apply(lambda x: x.replace(' ', '').split(',')[1] if ',' in x else x)
         self.job_meta["state"] = (
             self.job_meta.loc[:, "location"]
             .fillna("")
@@ -338,13 +376,26 @@ class DataJobsScraper:
                 #                                               .replace("&nbsp;"," ") \
                 #                                               .replace("&nbsp,"," ") \
                 #                                                + (cat,))) for x in fall]
-                fall_cols = [dict(zip(self.job_meta.columns, 
-                                          (y.replace("&amp;","&") \
-                                            .replace("&amp,","&") \
-                                            .replace("&nbsp;"," ") \
-                                            .replace("&nbsp,"," ") \
-                                            if type(y) == str else y for y in x) + (cat,))) \
-                                for x in fall]
+                fall_cols = [
+                    dict(
+                        zip(
+                            self.job_meta.columns,
+                            (
+                                (
+                                    y.replace("&amp;", "&")
+                                    .replace("&amp,", "&")
+                                    .replace("&nbsp;", " ")
+                                    .replace("&nbsp,", " ")
+                                    if type(y) == str
+                                    else y
+                                )
+                                for y in x
+                            )
+                            + (cat,),
+                        )
+                    )
+                    for x in fall
+                ]
                 # add to dataframe
                 self.job_meta = pd.concat(
                     [self.job_meta, pd.DataFrame(fall_cols)], ignore_index=True
@@ -387,10 +438,13 @@ class DataJobsScraper:
                 print(f"I can't find this job: {job['title']}")
                 continue
             # get html
-            job_desc_clean = cleanhtml(job_descr.get_attribute("innerHTML")).replace("&amp;","&") \
-                                                              .replace("&amp,","&") \
-                                                              .replace("&nbsp;"," ") \
-                                                              .replace("&nbsp,"," ")
+            job_desc_clean = (
+                cleanhtml(job_descr.get_attribute("innerHTML"))
+                .replace("&amp;", "&")
+                .replace("&amp,", "&")
+                .replace("&nbsp;", " ")
+                .replace("&nbsp,", " ")
+            )
             job_desc_list.append(
                 {
                     "job_id": job["job_id"],
@@ -453,13 +507,25 @@ class DataJobsScraper:
                     )
 
                     # create pandasable list
-                    fall_cols = [dict(zip(self.job_meta.columns, 
-                                          [y.replace("&amp;","&") \
-                                            .replace("&amp,","&") \
-                                            .replace("&nbsp;"," ") \
-                                            .replace("&nbsp,"," ") \
-                                            if type(y) == str else y for y in x])) \
-                                for x in fall]
+                    fall_cols = [
+                        dict(
+                            zip(
+                                self.job_meta.columns,
+                                [
+                                    (
+                                        y.replace("&amp;", "&")
+                                        .replace("&amp,", "&")
+                                        .replace("&nbsp;", " ")
+                                        .replace("&nbsp,", " ")
+                                        if type(y) == str
+                                        else y
+                                    )
+                                    for y in x
+                                ],
+                            )
+                        )
+                        for x in fall
+                    ]
 
                     # add to dataframe
                     self.job_meta = pd.concat(
@@ -508,10 +574,13 @@ class DataJobsScraper:
             )
 
             if len(company_name) == 1:
-                self.job_meta.loc[idx, "company"] = company_name[0].replace("&amp;","&") \
-                                                                .replace("&amp,","&") \
-                                                                .replace("&nbsp;"," ") \
-                                                                .replace("&nbsp,"," ")
+                self.job_meta.loc[idx, "company"] = (
+                    company_name[0]
+                    .replace("&amp;", "&")
+                    .replace("&amp,", "&")
+                    .replace("&nbsp;", " ")
+                    .replace("&nbsp,", " ")
+                )
             else:
                 print(
                     f"Not the correct number of company names for ID:{job['job_id']} TITLE: {job['title']}. Found: {company_name}"
@@ -546,10 +615,13 @@ class DataJobsScraper:
                 location = re.findall(r"job-location[^>]*>([^<]*)</div", page_html)
 
             if len(location) == 1 or len(location) == 2:
-                self.job_meta.loc[idx, "location"] = location[0].replace("&amp;","&") \
-                                                            .replace("&amp,","&") \
-                                                            .replace("&nbsp;"," ") \
-                                                            .replace("&nbsp,"," ")
+                self.job_meta.loc[idx, "location"] = (
+                    location[0]
+                    .replace("&amp;", "&")
+                    .replace("&amp,", "&")
+                    .replace("&nbsp;", " ")
+                    .replace("&nbsp,", " ")
+                )
             else:
                 print(
                     f"Not the correct number of locations for ID:{job['job_id']} TITLE: {job['title']}. Found: {location}"
@@ -565,10 +637,13 @@ class DataJobsScraper:
                 continue
 
             # get html
-            job_desc_clean = cleanhtml(job_descr.get_attribute("innerHTML")).replace("&amp;","&") \
-                                                                .replace("&amp,","&") \
-                                                                .replace("&nbsp;"," ") \
-                                                                .replace("&nbsp,"," ")
+            job_desc_clean = (
+                cleanhtml(job_descr.get_attribute("innerHTML"))
+                .replace("&amp;", "&")
+                .replace("&amp,", "&")
+                .replace("&nbsp;", " ")
+                .replace("&nbsp,", " ")
+            )
             job_desc_list.append(
                 {
                     "job_id": job["job_id"],
@@ -625,4 +700,3 @@ class DataJobsScraper:
                 clean_links.append(link)
 
         return clean_links
-
