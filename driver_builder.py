@@ -19,13 +19,15 @@ from selenium.webdriver.chrome.service import Service
 
 class DriverBuilder:
     """Class to build a chrome driver in selenium. The key functionality is it allows chrome to automatically download files to a
-    specific directory without the usual download prompt window. It also grabs the latest Chrome driver automatically, enables some 
+    specific directory without the usual download prompt window. It also grabs the latest Chrome driver automatically, enables some
     safebrowsing options, and emulates a user browser by using headers."""
 
-    def get_driver(self, download_location: str=None, headless: bool=False) -> chrome_webdriver:
+    def get_driver(
+        self, download_location: str = None, headless: bool = False
+    ) -> chrome_webdriver:
         """Calls the driver configuration manager and sets the chrome window size
 
-        Keyword Arguments: 
+        Keyword Arguments:
         download_location -- path to where files will be automatically downloaded, defaults to system defualt.
         headless -- tells the scraper to open up a browswer window or just run the driver in the background.
         """
@@ -35,7 +37,11 @@ class DriverBuilder:
 
         return driver
 
-    def _get_chrome_driver(self, download_location, headless):
+    def _get_chrome_driver(
+        self, download_location: str = None, headless: bool = False
+    ) -> chrome_webdriver:
+
+        # enables passing of chrome options to header
         chrome_options = chrome_webdriver.Options()
         if download_location:
             prefs = {
@@ -53,9 +59,10 @@ class DriverBuilder:
             chrome_options.add_argument("--headless")
             chrome_options.add_argument("--disable-dev-shm-usage")
             # tells the browswer that I am human while in headless mode
-            user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.50 Safari/537.36'
-            chrome_options.add_argument(f'user-agent={user_agent}')
+            user_agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.50 Safari/537.36"
+            chrome_options.add_argument(f"user-agent={user_agent}")
 
+        # enables automatic installation of chrome drivers
         service = Service(ChromeDriverManager().install())
         driver = Chrome(service=service, options=chrome_options)
         if headless:

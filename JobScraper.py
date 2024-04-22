@@ -155,7 +155,7 @@ def get_state_code(addr: str) -> str | None:
     Keyword Arguments:
     addr -- the address that we are triyng to parse for the state code
     """
-    # NOTE: this process is not perfect, but it is very good in broad strokes. 
+    # NOTE: this process is not perfect, but it is very good in broad strokes.
 
     # just skip it if there is no address
     if addr != addr or addr is None:
@@ -202,7 +202,7 @@ def get_state_code(addr: str) -> str | None:
     # start by looking for the state codes ('CA', 'WA', etc.)
     states = []
     for st in state_codes:
-        # split because we don't want to match on substrings of other words. 
+        # split because we don't want to match on substrings of other words.
         # e.g. company would match on CO fo Colorado
         if st in addr_1_sub.split():
             states.append(st)
@@ -240,8 +240,8 @@ class DataJobsScraper:
 
     def __init__(self, site: str):
         """Initializes the scraper and sets up a few variables for the scraper.
-        
-        Keyword Arguments: 
+
+        Keyword Arguments:
         site -- the website URL
         """
         self._site = site
@@ -261,7 +261,7 @@ class DataJobsScraper:
         )
 
     def scrape_jobs(self):
-        """Controls the scraping of the high-level job data. Establishes a selenium driver and calls the scraping functions to search 
+        """Controls the scraping of the high-level job data. Establishes a selenium driver and calls the scraping functions to search
         through pages of job postings."""
 
         # set up the Chrome Driver
@@ -277,7 +277,7 @@ class DataJobsScraper:
         elif self._site == "Indeed":
             self._site_url = "https://indeed.com/"
             self.__scrape_indeed()
-        
+
         # just dedup jobs before moving on
         self.job_meta.drop_duplicates(
             subset=self.job_meta.columns.tolist()[:-1], inplace=True
@@ -289,7 +289,7 @@ class DataJobsScraper:
         self.job_meta["pull_date"] = datetime.today().strftime(r"%m/%d/%Y")
 
     def scrape_job_text(self):
-        """Controls the scraping of the individual job postings including job descriptions. """
+        """Controls the scraping of the individual job postings including job descriptions."""
         if self._site == "DataJobs":
             job_desc_list = self.__scrape_datajob_desc()
         elif self._site == "Indeed":
@@ -299,7 +299,7 @@ class DataJobsScraper:
         self.job_descriptions = pd.DataFrame(job_desc_list)
 
     def clean_data(self):
-        """Clean up a couple things, grab state codes and clean up the job titles where we can. """
+        """Clean up a couple things, grab state codes and clean up the job titles where we can."""
         # let's clean up the data a bit
         # I noticed that New York City, NY is just represented as New York City. This doesn't work for pulling out the states later so let's just replace it
         self.job_meta.location = self.job_meta.location.replace(
@@ -315,13 +315,14 @@ class DataJobsScraper:
         self.job_meta["clean_title"] = self.job_meta["title"].apply(clean_title)
 
     def export_data(self, data_path):
+        """export the scraped data to csv files. This function will append onto existing data and update job_ids"""
         self._driver.close()
         try:
             # grab old data
             old_jm = pd.read_csv(f"{data_path}/{self._site}_job-meta.csv")
             old_jd = pd.read_csv(f"{data_path}/{self._site}_job-descriptions.csv")
         except:
-            # TODO: Fix comma issue, maybe just by making things excel files
+            # this is the first run so just export
             self.job_meta.to_csv(f"{data_path}/{self._site}_job-meta.csv", index=False)
             self.job_descriptions.to_csv(
                 f"{data_path}/{self._site}_job-descriptions.csv", index=False
@@ -341,17 +342,20 @@ class DataJobsScraper:
                 keep="first",
                 ignore_index=True,
             )
-            # drop duplicate descriptions. NOTE: This logic will prevent keeping jobs where the poster edited the job posting text
+            # drop duplicate descriptions. 
+            # NOTE: This logic will prevent keeping jobs where the poster edited the job posting text
             comb_jd = pd.concat([old_jd, self.job_descriptions], ignore_index=True)
             comb_jd = comb_jd[comb_jd["job_id"].isin(list(comb_jm["job_id"].values))]
 
-            # TODO: Fix comma issue, maybe just by making things excel files
+            # finally, export
             comb_jm.to_csv(f"{data_path}/{self._site}_job-meta.csv", index=False)
             comb_jd.to_csv(
                 f"{data_path}/{self._site}_job-descriptions.csv", index=False
             )
 
-    def __scrape_datajobs(self):
+    def __scrape_datajobs(self) -> pd.DataFrame:
+        # scrape job meta information (title, company, salary, job_posting_url, etc) from DataJobs.com.
+        # Data Jobs has two endpoints for Data Science/Analytics jobs and Data Engineering Jobs
         board_paths = ["/Data-Science-Jobs", "/Data-Engineering-Jobs"]
         # loop through the boards available
         for bp in board_paths:
@@ -369,20 +373,15 @@ class DataJobsScraper:
 
                 # grab job info
                 fall = re.findall(dj_pattern, page_html)
-
-                # create pandasable list
-                # fall_cols = [dict(zip(self.job_meta.columns, x.replace("&amp;","&") \
-                #                                               .replace("&amp,","&") \
-                #                                               .replace("&nbsp;"," ") \
-                #                                               .replace("&nbsp,"," ") \
-                #                                                + (cat,))) for x in fall]
+                
+                # zip the info into a dict for easy DataFrame-ability
                 fall_cols = [
                     dict(
                         zip(
                             self.job_meta.columns,
                             (
                                 (
-                                    y.replace("&amp;", "&")
+                                    y.replace("&amp;", "&") # this removes some HTML stuff to not confuse the CSV format
                                     .replace("&amp,", "&")
                                     .replace("&nbsp;", " ")
                                     .replace("&nbsp,", " ")
@@ -402,7 +401,7 @@ class DataJobsScraper:
                 )
 
                 if i == 300:
-                    # stop after 200 pages
+                    # stop after 300 pages
                     more_pages = False
 
                 # try to go to next page
@@ -415,14 +414,21 @@ class DataJobsScraper:
                     next_page.click()
                     i += 1
                 except:
-                    print("END OF SEARCH RESULTS...")
+                    logging.info(f"END OF SEARCH RESULTS: {self._site_url} || {bp}")
                     more_pages = False
+
+        # finally just log the site we are scraping from
         self.job_meta["site"] = self._site_url
 
-    def __scrape_datajob_desc(self):
+    def __scrape_datajob_desc(self) -> list:
+        # scrape the job description from the job posting
+
+        # list to hold description text
         job_desc_list = []
         for _, job in self.job_meta.iterrows():
+            # set up the URL so the driver can navigate there
             job_url = self._site_url + job["url"][1:]
+            # navigate to the job posting
             self._driver.get(job_url)
             # grab job desc element
             try:
@@ -435,12 +441,13 @@ class DataJobsScraper:
                     )
                 )
             except:
-                print(f"I can't find this job: {job['title']}")
+                logging.error(f"I can't find this job: {job['title']} || {self._site_url}")
                 continue
+
             # get html
             job_desc_clean = (
                 cleanhtml(job_descr.get_attribute("innerHTML"))
-                .replace("&amp;", "&")
+                .replace("&amp;", "&") # this removes some HTML stuff to not confuse the CSV format
                 .replace("&amp,", "&")
                 .replace("&nbsp;", " ")
                 .replace("&nbsp,", " ")
@@ -455,21 +462,23 @@ class DataJobsScraper:
             )
         return job_desc_list
 
-    def __scrape_indeed(self):
-        # states = ['California', 'Texas', 'Washington State', 'New York', 'Florida', 'Colorado', 'Oregon', 'Illinois', 'Massachusetts']
+    def __scrape_indeed(self) -> pd.DataFrame:
+        # scrape indeed for data jobs. Indeed has many more jobs than DataJobs so we run into the page limitation more often
+
+        # to not have bias in my viz toward one state, I just grab the top jobs in all states
         states = ["United States"]
         jobs = ["Data Scientist", "Data Analyst", "Data Engineer"]
-
-        # states = ['California']
-        # jobs = ['Data Scientist']
 
         for state in states:
             for job in jobs:
 
-                # we are having a frequest request issue, let's try some rate limiting
+                # this is rate limiting to limit the "are you a human?" Issue.
+                # NOTE: Indeed does allow scraping, check the robots.txt
                 time.sleep(np.random.randint(1, 10) / 10)
 
+                # set up webspage URL
                 bp = f"jobs?q={job.lower().replace(' ','+')}&l={state}"
+                # navigate to webpage
                 self._driver.get(self._site_url + bp)
 
                 more_pages = True  # will kill the loop when there are no more pages
@@ -489,6 +498,7 @@ class DataJobsScraper:
                         '<h2[^>]*jobTitle[^>]*><a[^>]*href="([^">]*)">', page_html
                     )
 
+                    # this ensures we can travel to the scraped link
                     clean_links = self.__clean_indeed_link(links=links)
 
                     # this is just in order to get it into the same format as the DataJobs scraper
@@ -533,6 +543,7 @@ class DataJobsScraper:
                     )
 
                     if i == 300:
+                        logging.warning(f"Ran into page limitation || {self._site_url} || {job} || {state}")
                         # stop after 200 pages
                         more_pages = False
 
@@ -549,14 +560,18 @@ class DataJobsScraper:
                         next_page.click()
                         i += 1
                     except:
-                        print("END OF SEARCH RESULTS...")
+                        logging.info(f"END OF SEARCH RESULTS: {self._site_url} || {job} || {state}")
                         more_pages = False
             self.job_meta["site"] = self._site_url
 
-    def __scrape_indeed_desc(self):
+    def __scrape_indeed_desc(self) -> list:
+        # similar to the DataJobs description scraper, navigate to the job posting and scrape info from it.
+        # this part contains most of the information about the job because the Regex's are simpler on this page
+
         job_desc_list = []
         for idx, job in self.job_meta.iterrows():
-            # we are having a frequest request issue, let's try some rate limiting
+            # this is rate limiting to limit the "are you a human?" Issue.
+            # NOTE: Indeed does allow scraping, check the robots.txt
             time.sleep(np.random.randint(1, 15) / 10)
 
             # for indeed jobs we store the full url here
@@ -564,9 +579,9 @@ class DataJobsScraper:
 
             # get the source html
             page_html = self._driver.page_source
+            # strip out the script and styling
             page_html = remove_script_tags(page_html)
             page_html = remove_style_tags(page_html)
-            # strip out the script and styling
 
             # grab company name
             company_name = re.findall(
@@ -582,7 +597,7 @@ class DataJobsScraper:
                     .replace("&nbsp,", " ")
                 )
             else:
-                print(
+                logging.warning(
                     f"Not the correct number of company names for ID:{job['job_id']} TITLE: {job['title']}. Found: {company_name}"
                 )
                 company_name = [""]
@@ -602,7 +617,7 @@ class DataJobsScraper:
                     except:
                         self.job_meta.loc[idx, "salary_lower"] = pay_range[0]
             else:
-                print(
+                logging.warning(
                     f"Not the correct number of salaries for ID:{job['job_id']} TITLE: {job['title']} Found: {pay}"
                 )
 
@@ -614,7 +629,7 @@ class DataJobsScraper:
             if not location:
                 location = re.findall(r"job-location[^>]*>([^<]*)</div", page_html)
 
-            if len(location) == 1 or len(location) == 2:
+            if len(location) in (1,2):
                 self.job_meta.loc[idx, "location"] = (
                     location[0]
                     .replace("&amp;", "&")
@@ -623,7 +638,7 @@ class DataJobsScraper:
                     .replace("&nbsp,", " ")
                 )
             else:
-                print(
+                logging.warning(
                     f"Not the correct number of locations for ID:{job['job_id']} TITLE: {job['title']}. Found: {location}"
                 )
 
