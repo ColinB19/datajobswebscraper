@@ -669,19 +669,20 @@ class DataJobsScraper:
             )
         return job_desc_list
 
-    def __pay_handler(self, pay_string):
-
+    def __pay_handler(self, pay_string: str) -> str | list:
+        # takes a string that either contains the salary or a range of salaries and pulls out the integer values
         # split on the dash
         pays = pay_string.split("-")
         # remove all non-numeric characters
         try:
             pays = [float(re.sub(r"[^\d\.]*", "", x)) for x in pays]
         except ValueError:
-            print(f"couldn't convert to float: {pay_string}")
+            logging.error(f"couldn't convert to float: {pay_string}")
         if len(pays) > 2:
-            print(f"there are too many pays! {pay_string}")
+            logging.error(f"there are too many pays! {pay_string}")
             return pay_string
-
+        
+        # convert all pay intervals to a yearly salary
         if "year" in pay_string:
             return pays
         elif "month" in pay_string:
@@ -696,10 +697,11 @@ class DataJobsScraper:
         elif pays[0] > 30_000:
             return pays[0]
         else:
-            print(f"Pay error. not sure how to parse: {pay_string}")
+            logging.error(f"Pay error. not sure how to parse: {pay_string}")
             return pay_string
 
-    def __clean_indeed_link(self, links):
+    def __clean_indeed_link(self, links: list) -> list:
+        # takes a list of indeed job link suffixes and returns the real job posting links 
         clean_links = []
         for link in links:
             if link.startswith("/rc/clk?"):
@@ -711,7 +713,7 @@ class DataJobsScraper:
                     "https://www.indeed.com" + link.replace("&amp;", "&")
                 )
             else:
-                print(f"We haven't handled this link type: {link[:20]}")
+                logging.critical(f"We haven't handled this link type: {link[:20]}")
                 clean_links.append(link)
 
         return clean_links
