@@ -38,7 +38,7 @@ logging.basicConfig(
     filename=LOG_PATH + "/main.log",
     format="%(levelname)s - %(asctime)s:%(message)s",
     encoding="utf-8",
-    level=logging.ERROR,
+    level=logging.WARNING,
 )
 
 
