@@ -648,7 +648,7 @@ class DataJobsScraper:
                     EC.element_to_be_clickable((By.ID, "jobDescriptionText"))
                 )
             except:
-                print(f"I can't find this job: {job['title']}")
+                logging.warning(f"I can't find this job: {job['title']}")
                 continue
 
             # get html
