@@ -61,8 +61,8 @@ python visualize.py
 ## 🌐 Data Sources
 
 We scrape job postings from a variety of websites, including but not limited to:
-- Indeed
-- DataJobs
+- [Indeed](https://www.indeed.com/)
+- [DataJobs](https://datajobs.com/)
 
 ## 📊 Results
 
