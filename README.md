@@ -57,12 +57,12 @@ Currently, the scraper scrapes data from:
 ## 📊 Results
 
 ### **Job Locations**: Where are the most opportunities? 🗺️
-<img src="IMG/position_density_chloropleth3.png" height=250>
+<img src="IMG/position_density_chloropleth3.png" height=350>
 
 ### **Salary Ranges**: How much can you expect to earn? 💸
-<img src="IMG/salaries.png" height=300>
+<img src="IMG/salaries.png" height=400>
 
 ### **Key Skills**: What skills are in demand? 🛠️
-<img src="IMG/wc_specific_CROP.png" height=250>
+<img src="IMG/wc_specific_CROP.png" height=350>
 
 
