@@ -34,9 +34,9 @@ By providing these insights, we hope to help aspiring data scientists and analys
 
 The scraper uses environment variables in a `.env` file to configure paths. You'll need a `DATA_PATH` for the scraped data and a `LOG_PATH` for the scraper logs. 
 
-To get familiar with the data, please run through [HowTo-ScrapingDataJobs.ipynb](https://github.com/ColinB19/datajobswebscraper/blob/master/HowTo-ScrapingDataJobs.ipynb).
+To get familiar with webscraping with Selenium, please run through [HowTo-ScrapingDataJobs.ipynb](https://github.com/ColinB19/datajobswebscraper/blob/master/HowTo-ScrapingDataJobs.ipynb).
 
-To utilize the full scraper, and visualize and analyze the data, please see [Webscrape_DataJobs.ipynb](https://github.com/ColinB19/datajobswebscraper/blob/master/Webscrape_DataJobs.ipynb)
+To utilize the full scraper, and visualize and analyze the data, please see [Webscrape_DataJobs.ipynb](https://github.com/ColinB19/datajobswebscraper/blob/master/Webscrape_DataJobs.ipynb).
 
 If you would just like to run the scraper, please use the following snippit from [Webscrape_DataJobs.ipynb](https://github.com/ColinB19/datajobswebscraper/blob/master/Webscrape_DataJobs.ipynb):
 
@@ -50,19 +50,19 @@ djs.export_data(data_path=PATH)
 
 ## 🌐 Data Sources
 
-We scrape job postings from a variety of websites, including but not limited to:
+Currently, the scraper scrapes data from: 
 - [Indeed](https://www.indeed.com/)
 - [DataJobs](https://datajobs.com/)
 
 ## 📊 Results
 
 ### **Job Locations**: Where are the most opportunities? 🗺️
-<img src="IMG/position_density_chloropleth3.png">
+<img src="IMG/position_density_chloropleth3.png" height=250>
 
 ### **Salary Ranges**: How much can you expect to earn? 💸
-<img src="IMG/salaries.png">
+<img src="IMG/salaries.png" height=300>
 
 ### **Key Skills**: What skills are in demand? 🛠️
-<img src="IMG/wc_specific_CROP.png">
+<img src="IMG/wc_specific_CROP.png" height=250>
 
 
